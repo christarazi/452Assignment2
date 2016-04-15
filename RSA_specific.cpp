@@ -7,7 +7,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
@@ -212,6 +211,10 @@ int main(int argc, char** argv)
 		fprintf(stderr, "%c", decryptedText[index]);
 
 	fprintf(stderr, "\n----------------------------------------------\n");
+
+	RSA_free(pub);
+	RSA_free(priv);
+
 	return (0);
 }
 
