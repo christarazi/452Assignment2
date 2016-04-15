@@ -137,12 +137,13 @@ void RSA_452::encrypt(const unsigned char* plaintextFileIn,
 }
 
 /**
- * Decrypts a string of ciphertext
- * @param ciphertext - the ciphertext
- * @return - the plaintext
+ * Decrypt the file at ciphertextFileIn and output at plaintextFileOut.
+ * @param  ciphertextFileIn - the file to decrypt.
+ * @param  plaintextFileOut - the decrypted output file.
+ * @return                  - void
  */
 void RSA_452::decrypt(const unsigned char* ciphertextFileIn,
-					  const unsigned char* plaintextFileOut)
+                      const unsigned char* plaintextFileOut)
 {
 	cout << "Starting decryption...\n\n";
 
