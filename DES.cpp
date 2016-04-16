@@ -1,11 +1,12 @@
 #include "DES.h"
+#include <iostream>
 
 /**
  * Sets the key to use
  * @param key - the key to use
  * @return - True if the key is valid and False otherwise
  */
-bool DES::setKey(const unsigned char* keyArray)
+bool DES_452::setKey(const unsigned char* keyArray)
 {
 	/**
 	 * First let's covert the char string
@@ -60,13 +61,110 @@ bool DES::setKey(const unsigned char* keyArray)
 	return true;
 }
 
+vector <unsigned char> verifyPadding(vector <unsigned char>readBuffer, int bytesRead)
+{
+    int padding;
+    if (bytesRead != 8)
+    {
+        int position = 0;
+        padding = 8 - bytesRead;
+        while (position < readBuffer.size())
+        {
+            if (position < 7)
+            {
+                readBuffer[position] = '0';
+            }
+            else
+            {
+                readBuffer[position] = (char) ((char) padding - '0');
+                //readBuffer[position] = getCharEquivilant(padding);
+            }
+            position += 1;
+        }
+    }
+    return readBuffer;
+}
+
+vector <unsigned char> DES_452::performDES(vector <unsigned char> readBuffer, int desAction)
+{
+    if (readBuffer.size() != 8)
+    {
+        cout << "Invalid Plaintext Length:  The length of plaintext must be 8." << endl;
+    }
+    DES_LONG myBlock [2];
+    //unsigned char txtText[8];
+    vector<unsigned char> txtText(8);
+    
+    myBlock[0] = ctol(& readBuffer.data()[0]);
+    cout << myBlock[0] << endl;
+    myBlock[1] = ctol(& readBuffer.data()[4]);
+    cout << myBlock[1] << endl;
+    
+    DES_encrypt1(myBlock, & this->key, desAction);
+    
+    ltoc(myBlock[0], & txtText.data()[0]);
+    ltoc(myBlock[1], & txtText.data()[4]);
+    
+    
+    //for (int i = 0; i < sizeof(txtText); ++i)
+    //    cout << txtText[i];
+    
+    return txtText;
+}
 /**
  * Encrypts a plaintext string
  * @param plaintext - the plaintext string
  * @return - the encrypted ciphertext string
  */
-unsigned char* DES::encrypt(const unsigned char* plaintext)
+void DES_452::encrypt(const unsigned char* plaintextFileIn, const unsigned char* ciphertextFileOut)
 {
+    
+    // Open files in binary mode.
+    fstream fIn((char*) plaintextFileIn, ios::in | ios::binary);
+    fstream fOut((char*) ciphertextFileOut, ios::out | ios::binary);
+    
+    // readBuffer must be of size 215 because that's the maximum number of
+    // bytes RSA takes in for encryption (because of padding).
+    // writeBuffer is of size 256 because that's the number of bytes RSA outputs.
+    vector<unsigned char> readBuffer(8);
+    vector<unsigned char> writeBuffer(8);
+    
+    // Fill the buffers with zeros.
+    fill(readBuffer.begin(), readBuffer.end(), 0);
+    fill(writeBuffer.begin(), writeBuffer.end(), 0);
+    
+    
+    int totalBytesRead = 0;
+    int totalBytesWritten = 0;
+    int encryptedBytes = 0;
+    
+    // Make sure both file streams were able to open the files.
+    if (fIn.is_open() && fOut.is_open())
+    {
+        // Loop while there is still data to be read from the file.
+        while (fIn.good())
+        {
+            // Read the max number of bytes (which is 8 here)
+            // and store it in the readBuffer.
+            fIn.read((char*) readBuffer.data(), 8);
+            int bytesRead = fIn.gcount();
+            
+            // Break if we didn't read any bytes.
+            if (bytesRead == 0)
+                break;
+            
+            verifyPadding(readBuffer, bytesRead);
+            
+            writeBuffer = performDES(readBuffer, 1);  //1 for encrypting
+            
+            // Fancy C++11 function to copy writeBuffer to output file.
+            copy(begin(writeBuffer), end(writeBuffer),
+                 ostream_iterator<unsigned char>(fOut, ""));
+        }
+    }
+}
+        
+    
 	//LOGIC:
 	//1. Check to make sure that the block is exactly 8 characters (i.e. 64 bits)
 	//2. Declare an array DES_LONG block[2];
@@ -79,18 +177,60 @@ unsigned char* DES::encrypt(const unsigned char* plaintext)
 	// (e.g. unsigned char* bytes = new unsigned char[8]).
 	//9. Return the pointer to the dynamically allocated array.
 
-	return NULL;
-}
-
 /**
  * Decrypts a string of ciphertext
  * @param ciphertext - the ciphertext
  * @return - the plaintext
  */
-unsigned char* DES::decrypt(const unsigned char* ciphertext)
+void DES_452::decrypt(const unsigned char* plaintextFileIn, const unsigned char* ciphertextFileOut)
 {
-	//LOGIC:
+    // Open files in binary mode.
+    fstream fIn((char*) plaintextFileIn, ios::in | ios::binary);
+    fstream fOut((char*) ciphertextFileOut, ios::out | ios::binary);
+    
+    // readBuffer must be of size 215 because that's the maximum number of
+    // bytes RSA takes in for encryption (because of padding).
+    // writeBuffer is of size 256 because that's the number of bytes RSA outputs.
+    vector<unsigned char> readBuffer(8);
+    vector<unsigned char> writeBuffer(8);
+    
+    // Fill the buffers with zeros.
+    fill(readBuffer.begin(), readBuffer.end(), 0);
+    fill(writeBuffer.begin(), writeBuffer.end(), 0);
+    
+    
+    int totalBytesRead = 0;
+    int totalBytesWritten = 0;
+    int encryptedBytes = 0;
+    
+    // Make sure both file streams were able to open the files.
+    if (fIn.is_open() && fOut.is_open())
+    {
+        // Loop while there is still data to be read from the file.
+        while (fIn.good())
+        {
+            // Read the max number of bytes (which is 8 here)
+            // and store it in the readBuffer.
+            fIn.read((char*) readBuffer.data(), 8);
+            int bytesRead = fIn.gcount();
+            
+            // Break if we didn't read any bytes.
+            if (bytesRead == 0)
+                break;
+            
+            verifyPadding(readBuffer, bytesRead);
+            
+            writeBuffer = performDES(readBuffer, 0);  //0 for decrypting
+            
+            // Fancy C++11 function to copy writeBuffer to output file.
+            copy(begin(writeBuffer), end(writeBuffer),
+                 ostream_iterator<unsigned char>(fOut, ""));
+        }
+    }
+    
+    //LOGIC:
 	// Same logic as encrypt(), except in step 5. decrypt instead of encrypting
+
 }
 
 /**
@@ -100,7 +240,7 @@ unsigned char* DES::decrypt(const unsigned char* ciphertext)
  * @return - the long integer (32 bits) where each byte
  * is equivalent to one of the bytes in a character array
  */
-DES_LONG DES::ctol(unsigned char *c)
+DES_LONG DES_452::ctol(unsigned char *c)
 {
 	/* The long integer */
 	DES_LONG l;
@@ -119,7 +259,7 @@ DES_LONG DES::ctol(unsigned char *c)
  * @param l - the long integer to convert
  * @param c - the character array to store the result
  */
-void DES::ltoc(DES_LONG l, unsigned char *c)
+void DES_452::ltoc(DES_LONG l, unsigned char *c)
 {
 	*((c)++) = (unsigned char)(l & 0xff);
 	*((c)++) = (unsigned char)(((l) >> 8L) & 0xff);
@@ -132,7 +272,7 @@ void DES::ltoc(DES_LONG l, unsigned char *c)
  * @param character - the character to convert
  * @return - the converted character, or 'z' on error
  */
-unsigned char DES::charToHex(const char& character)
+unsigned char DES_452::charToHex(const char& character)
 {
 	/* Is the first digit 0-9 ? */
 	if (character >= '0' && character <= '9')
@@ -157,7 +297,7 @@ unsigned char DES::charToHex(const char& character)
  * valud of two characters e.g. string "ab"
  * becomes hexidecimal integer 0xab.
  */
-unsigned char DES::twoCharToHexByte(const unsigned char* twoChars)
+unsigned char DES_452::twoCharToHexByte(const unsigned char* twoChars)
 {
 	/* The byte */
 	unsigned char singleByte;

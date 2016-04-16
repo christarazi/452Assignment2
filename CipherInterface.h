@@ -11,39 +11,87 @@ using namespace std;
  */
 class CipherInterface
 {
-	/** The public members **/
-	public:
+    /** The public members **/
+public:
+    
+    /**
+     * The default constructor
+     */
+    CipherInterface(){}
+    
+    /**
+     * NOTE: This is used for DES.
+     * Sets the key to use.
+     * @param key 	- the key to use.
+     * @return 		- True if the key is valid and False otherwise.
+     */
+    virtual bool setKey(const unsigned char* key){ return false;  }
+    
+    /**
+     * NOTE: This is used for RSA.
+     * Sets the key pair to use. 
+     * @param  publicKeyFile  - the file containing the public key.
+     * @param  privateKeyFile - the file containing the private key.
+     * @return                - true if setting key succeeded; false otherwise.
+     */
+    virtual bool setKey(const unsigned char* publicKeyFile, const unsigned char* privateKeyFile)
+    {
+        return false;
+    };
+    
+    
+    /**
+     * NOTE: This is for DES
+     * Encrypt the file at plaintextFileIn and output at ciphertextFileOut.
+     * @param  plaintextFileIn   - the file to encrypt.
+     * @param  ciphertextFileOut - the encrypted output file.
+     * @return 					 - void
+     */    
+    virtual unsigned char * encrypt(const unsigned char* plaintext) { return NULL; }
+    
+    
+    /**
+     * NOTE: This is for RSA
+     * Encrypt the file at plaintextFileIn and output at ciphertextFileOut.
+     * @param  plaintextFileIn   - the file to encrypt.
+     * @param  ciphertextFileOut - the encrypted output file.
+     * @return 					 - void
+     */
+    virtual void encrypt(const unsigned char* plaintextFileIn,
+                         const unsigned char* ciphertextFileOut)
+    { return; }
 
-		/**
-		 * The default constructor
-		 */
-		CipherInterface(){}
-		
-		
-		/**
-		 * Sets the key to use
-		 * @param key - the key to use
-		 * @return - True if the key is valid and False otherwise
-		 */
-		virtual bool setKey(const unsigned char* key){ return false;  }
-
-		/**	
-		 * Encrypts a plaintext string
-		 * @param plaintext - the plaintext string
-		 * @return - the encrypted ciphertext string
-		 */
-		virtual unsigned char* encrypt(const unsigned char* plaintext){ return NULL; }
-
-		/**
-		 * Decrypts a string of ciphertext
-		 * @param ciphertext - the ciphertext
-		 * @return - the plaintext
-		 */
-		virtual unsigned char* decrypt(const unsigned char* ciphertext) { return NULL; }
-
-		/* The protected members */
-	protected:
-	
+    
+    
+    /**
+     * NOTE: This is for DES
+     * Decrypt the file at ciphertextFileIn and output at plaintextFileOut.
+     * @param  ciphertextFileIn - the file to decrypt.
+     * @param  plaintextFileOut - the decrypted output file.
+     * @return                  - void
+     */
+    virtual unsigned char * decrypt(const unsigned char* ciphertext)
+    { return NULL; }    
+    
+    /**
+     * NOTE: This is for RSA
+     * Decrypt the file at ciphertextFileIn and output at plaintextFileOut.
+     * @param  ciphertextFileIn - the file to decrypt.
+     * @param  plaintextFileOut - the decrypted output file.
+     * @return                  - void
+     */
+    virtual void decrypt(const unsigned char* ciphertextFileIn,
+                         const unsigned char* plaintextFileOut)
+    { return; }
+    
+    /**
+     * The default destructor.
+     */
+    virtual ~CipherInterface(){}
+    
+    /* The protected members */
+protected:
+    
 };
 
 #endif

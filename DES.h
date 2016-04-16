@@ -8,13 +8,15 @@
 #include <string>
 #include "CipherInterface.h"
 #include <ctype.h>
+#include <vector>
+#include <fstream>
 
 using namespace std;
 
 /** 
  * Implements a DES cipher
  */
-class DES: public CipherInterface
+class DES_452: public CipherInterface
 {
 	/* The public members */
 	public:
@@ -22,7 +24,7 @@ class DES: public CipherInterface
 		/**
 		 * The default constructor
 	 	 */
-		DES(){}
+		DES_452(){}
 			
 		/**
 		 * Sets the key to use
@@ -36,19 +38,24 @@ class DES: public CipherInterface
 		 * @param plaintext - the plaintext string
 		 * @return - the encrypted ciphertext string
 		 */
-		virtual unsigned char* encrypt(const unsigned char* plaintext);
+		//virtual unsigned char* encrypt(const unsigned char* plaintext);
 
+    
+        void encrypt(const unsigned char* plaintextFileIn, const unsigned char* ciphertextFileOut);
+    
 		/**
 		 * Decrypts a string of ciphertext
 		 * @param ciphertext - the ciphertext
 		 * @return - the plaintext
 		 */
-		virtual unsigned char* decrypt(const unsigned char* ciphertext);
+		//virtual unsigned char* decrypt(const unsigned char* ciphertext);
 	
-			
+        void decrypt(const unsigned char* plaintextFileIn, const unsigned char* ciphertextFileOut);	
+        
 	/* The protected members */
 	protected:
-
+    
+        vector <unsigned char> performDES(vector <unsigned char> readBuffer, int desAction);
 
 		/**
 		 * Converts two characters into a hex integers
