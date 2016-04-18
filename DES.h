@@ -19,7 +19,7 @@ using namespace std;
 /**
  * Implements a DES cipher
  */
-class DES_452: public CipherInterface
+class DES: public CipherInterface
 {
 	/* The public members */
 public:

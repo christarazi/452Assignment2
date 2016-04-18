@@ -10,7 +10,7 @@ using namespace std;
  * @param key - the key to use
  * @return - True if the key is valid and False otherwise
  */
-bool DES_452::setKey(const unsigned char* keyArray)
+bool DES::setKey(const unsigned char* keyArray)
 {
 	/* The key error code */
 	int keyErrorCode = -1;
@@ -38,15 +38,15 @@ bool DES_452::setKey(const unsigned char* keyArray)
 		++desKeyIndex;
 	}
 
-	fprintf(stdout, "DES KEY: ");
+	//fprintf(stdout, "DES KEY: ");
 
 	DES_set_odd_parity(&this->des_key);
 
 	/* Print the key */
-	for (keyIndex = 0; keyIndex < 8; ++keyIndex)
-		fprintf(stdout, "%02x", this->des_key[keyIndex]);
+	// for (keyIndex = 0; keyIndex < 8; ++keyIndex)
+	// 	fprintf(stdout, "%02x", this->des_key[keyIndex]);
 
-	fprintf(stdout, "\n");
+	//fprintf(stdout, "\n");
 
 	/* Set the encryption key */
 	if ((keyErrorCode = des_set_key_checked(&this->des_key, this->key)) != 0)
@@ -60,56 +60,6 @@ bool DES_452::setKey(const unsigned char* keyArray)
 	return true;
 }
 
-vector <unsigned char> verifyPadding(vector <unsigned char>readBuffer, int bytesRead)
-{
-    int padding;
-    if (bytesRead != 8)
-    {
-        int position = 0;
-        padding = 8 - bytesRead;
-        while (position < readBuffer.size())
-        {
-            if (position < 7)
-            {
-                readBuffer[position] = '0';
-            }
-            else
-            {
-                readBuffer[position] = (char) ((char) padding - '0');
-                //readBuffer[position] = getCharEquivilant(padding);
-            }
-            position += 1;
-        }
-    }
-    return readBuffer;
-}
-
-vector <unsigned char> DES_452::performDES(vector <unsigned char> readBuffer, int desAction)
-{
-    if (readBuffer.size() != 8)
-    {
-        cout << "Invalid Plaintext Length:  The length of plaintext must be 8." << endl;
-    }
-    DES_LONG myBlock [2];
-    //unsigned char txtText[8];
-    vector<unsigned char> txtText(8);
-    
-    myBlock[0] = ctol(& readBuffer.data()[0]);
-    cout << myBlock[0] << endl;
-    myBlock[1] = ctol(& readBuffer.data()[4]);
-    cout << myBlock[1] << endl;
-    
-    DES_encrypt1(myBlock, & this->key, desAction);
-    
-    ltoc(myBlock[0], & txtText.data()[0]);
-    ltoc(myBlock[1], & txtText.data()[4]);
-    
-    
-    //for (int i = 0; i < sizeof(txtText); ++i)
-    //    cout << txtText[i];
-    
-    return txtText;
-}
 /**
  * Function to pad a DES block if necessary.
  * @param  readBuffer - the block we want to verify padding for.
@@ -128,7 +78,7 @@ vector<unsigned char> DES::verifyPadding(vector<unsigned char> readBuffer, int b
 
 		// Starting position to insert pad bytes.
 		position = MAX_DES_BYTES - padding;
-		cout << "This block requires " << padding << " pads.\n";
+		//cout << "This block requires " << padding << " pads.\n";
 
 		// Loop until we fill up the entire block.
 		// Filling readBuffer with number of pad bytes as the padding.
@@ -399,29 +349,29 @@ void DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 			int padBytes = (int) decryptedBuffer[MAX_DES_BYTES - 1];
 			if (padBytes >= 1 && padBytes <= 7)
 			{
-				cout << "Detected padding: " << padBytes << " bytes\n";
+				//cout << "Detected padding: " << padBytes << " bytes\n";
 				// Start from the second to last element in decryptedBuffer.
 				// Make sure there's padBytes amount of padding.
 				// If not, then we did not detect padding.
 				for (unsigned int i = 0; i < padBytes; ++i)
 				{
-					printf("Checking if decryptedBuffer[%u] is %02x\n", MAX_DES_BYTES - i - 1, (unsigned char) padBytes);
+					//printf("Checking if decryptedBuffer[%u] is %02x\n", MAX_DES_BYTES - i - 1, (unsigned char) padBytes);
 					if (decryptedBuffer[MAX_DES_BYTES - i - 1] != padBytes)
 					{
 						padBytes = 0;
 						break;
 					}
-					else
-						cout << "Found pad byte\n";
+					// else
+					// 	cout << "Found pad byte\n";
 				}
 			}
 			else
 				padBytes = 0;
 
-			if (padBytes != 0)
-			{
-				cout << "Trimming " << padBytes << " bytes\n\n";
-			}
+			// if (padBytes != 0)
+			// {
+			// 	cout << "Trimming " << padBytes << " bytes\n\n";
+			// }
 
 			// Fancy C++11 function to copy decryptedBuffer to output file.
 			copy(begin(decryptedBuffer), end(decryptedBuffer) - padBytes,
@@ -444,7 +394,7 @@ void DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
  * @return - the long integer (32 bits) where each byte
  * is equivalent to one of the bytes in a character array
  */
-DES_LONG DES_452::ctol(unsigned char *c)
+DES_LONG DES::ctol(unsigned char *c)
 {
 	/* The long integer */
 	DES_LONG l;
@@ -463,7 +413,7 @@ DES_LONG DES_452::ctol(unsigned char *c)
  * @param l - the long integer to convert
  * @param c - the character array to store the result
  */
-void DES_452::ltoc(DES_LONG l, unsigned char *c)
+void DES::ltoc(DES_LONG l, unsigned char *c)
 {
 	*((c)++) = (unsigned char)(l & 0xff);
 	*((c)++) = (unsigned char)(((l) >> 8L) & 0xff);
@@ -476,7 +426,7 @@ void DES_452::ltoc(DES_LONG l, unsigned char *c)
  * @param character - the character to convert
  * @return - the converted character, or 'z' on error
  */
-unsigned char DES_452::charToHex(const char& character)
+unsigned char DES::charToHex(const char& character)
 {
 	/* Is the first digit 0-9 ? */
 	if (character >= '0' && character <= '9')
@@ -501,7 +451,7 @@ unsigned char DES_452::charToHex(const char& character)
  * valud of two characters e.g. string "ab"
  * becomes hexadecimal integer 0xab.
  */
-unsigned char DES_452::twoCharToHexByte(const unsigned char* twoChars)
+unsigned char DES::twoCharToHexByte(const unsigned char* twoChars)
 {
 	/* The byte */
 	unsigned char singleByte;
