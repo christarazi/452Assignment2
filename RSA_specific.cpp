@@ -27,58 +27,58 @@
  */
 void readKeys(const char* pubKeyFile, const char* privKeyFile, RSA*& pubKey, RSA*& privKey)
 {
-	/**** FIRST LETS READ THE PUBLIC KEY **********/
-
-	/* Open the public key file */
-	FILE* fp = fopen(pubKeyFile, "r");
-
-	/* Error checks */
-	if (!fp)
-	{
-		perror("fopen");
-		exit(1);
-	}
-
-	/* Read the public key */
-	pubKey = PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
-
-	/* Make sure the file contained a valid key */
-	if (!pubKey)
-	{
-		perror("PEM_read_RSAPublicKey");
-		exit(-1);
-	}
-
-	/* Close the public key file */
-	fclose(fp);
-
-	/******** NOW, LETS READ THE PRIVATE KEY **********/
-
-	/* Open the file containing the private key */
-	fp = fopen(privKeyFile, "r");
-
-	/* Error checks */
-	if (!fp)
-	{
-		perror("fopen");
-		exit(1);
-	}
-
-	/* Read the private key */
-	privKey = PEM_read_RSAPrivateKey(fp, NULL, NULL, NULL);
-
-	/* Make sure the file contained a valid key */
-	if (!privKey)
-	{
-		perror("PEM_read_RSAPrivateKey");
-		exit(-1);
-	}
-
-	/* Close the public key file */
-	fclose(fp);
-
-
-
+    /**** FIRST LETS READ THE PUBLIC KEY **********/
+    
+    /* Open the public key file */
+    FILE* fp = fopen(pubKeyFile, "r");
+    
+    /* Error checks */
+    if (!fp)
+    {
+        perror("fopen");
+        exit(1);
+    }
+    
+    /* Read the public key */
+    pubKey = PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL);
+    
+    /* Make sure the file contained a valid key */
+    if (!pubKey)
+    {
+        perror("PEM_read_RSAPublicKey");
+        exit(-1);
+    }
+    
+    /* Close the public key file */
+    fclose(fp);
+    
+    /******** NOW, LETS READ THE PRIVATE KEY **********/
+    
+    /* Open the file containing the private key */
+    fp = fopen(privKeyFile, "r");
+    
+    /* Error checks */
+    if (!fp)
+    {
+        perror("fopen");
+        exit(1);
+    }
+    
+    /* Read the private key */
+    privKey = PEM_read_RSAPrivateKey(fp, NULL, NULL, NULL);
+    
+    /* Make sure the file contained a valid key */
+    if (!privKey)
+    {
+        perror("PEM_read_RSAPrivateKey");
+        exit(-1);
+    }
+    
+    /* Close the public key file */
+    fclose(fp);
+    
+    
+    
 }
 
 
@@ -92,24 +92,24 @@ void readKeys(const char* pubKeyFile, const char* privKeyFile, RSA*& pubKey, RSA
  */
 int RSA_Encrypt(RSA* rsaKeyPair, unsigned char *in, unsigned char *out, const unsigned int& size )
 {
-	printf("EPT: RSA_Encrypt\n");
-	fprintf(stderr, "size: %d\n", size);
-
-	/* The number of bytes encrypted */
-	int encrypt_len = -1;
-
-	/* The buffer containing the error message */
-	char errorBuff[130];
-
-	/* Encrypt the message using public key */
-	if ((encrypt_len = RSA_public_encrypt(size, in, out, rsaKeyPair, RSA_PKCS1_OAEP_PADDING)) < 0)
-	{
-		ERR_load_crypto_strings();
-		ERR_error_string(ERR_get_error(), errorBuff);
-		fprintf(stderr, "Error encrypting message: %s\n", errorBuff);
-	}
-
-	return encrypt_len;
+    printf("EPT: RSA_Encrypt\n");
+    fprintf(stderr, "size: %d\n", size);
+    
+    /* The number of bytes encrypted */
+    int encrypt_len = -1;
+    
+    /* The buffer containing the error message */
+    char errorBuff[130];
+    
+    /* Encrypt the message using public key */
+    if ((encrypt_len = RSA_public_encrypt(size, in, out, rsaKeyPair, RSA_PKCS1_OAEP_PADDING)) < 0)
+    {
+        ERR_load_crypto_strings();
+        ERR_error_string(ERR_get_error(), errorBuff);
+        fprintf(stderr, "Error encrypting message: %s\n", errorBuff);
+    }
+    
+    return encrypt_len;
 }
 
 /**
@@ -122,27 +122,26 @@ int RSA_Encrypt(RSA* rsaKeyPair, unsigned char *in, unsigned char *out, const un
  */
 int RSA_Decrypt(RSA* privKey, unsigned char *in, unsigned char *out, const unsigned int& size )
 {
-	printf("EPT: RSA_Decrypt\n");
-	/* The number of bytes encrypted */
-	int encrypt_len = -1;
-
-	/* The buffer containing the error message */
-	char errorBuff[130];
-
-	/* The private key */
-	if ((encrypt_len = RSA_private_decrypt(size, in, out, privKey, RSA_PKCS1_OAEP_PADDING)) < 0)
-	{
-		ERR_load_crypto_strings();
-		ERR_error_string(ERR_get_error(), errorBuff);
-		fprintf(stderr, "Error decrypting message: %s\n", errorBuff);
-	}
-
-	return encrypt_len;
+    printf("EPT: RSA_Decrypt\n");
+    /* The number of bytes encrypted */
+    int encrypt_len = -1;
+    
+    /* The buffer containing the error message */
+    char errorBuff[130];
+    
+    /* The private key */
+    if ((encrypt_len = RSA_private_decrypt(size, in, out, privKey, RSA_PKCS1_OAEP_PADDING)) < 0)
+    {
+        ERR_load_crypto_strings();
+        ERR_error_string(ERR_get_error(), errorBuff);
+        fprintf(stderr, "Error decrypting message: %s\n", errorBuff);
+    }
+    
+    return encrypt_len;
 }
 
 int main(int argc, char** argv)
 {
-
 	RSA* pub;
 	RSA* priv;
 
