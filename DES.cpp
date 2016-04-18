@@ -1,4 +1,5 @@
 #include "DES.h"
+#include <iostream>
 
 using namespace std;
 
@@ -9,7 +10,7 @@ using namespace std;
  * @param key - the key to use
  * @return - True if the key is valid and False otherwise
  */
-bool DES::setKey(const unsigned char* keyArray)
+bool DES_452::setKey(const unsigned char* keyArray)
 {
 	/* The key error code */
 	int keyErrorCode = -1;
@@ -59,6 +60,56 @@ bool DES::setKey(const unsigned char* keyArray)
 	return true;
 }
 
+vector <unsigned char> verifyPadding(vector <unsigned char>readBuffer, int bytesRead)
+{
+    int padding;
+    if (bytesRead != 8)
+    {
+        int position = 0;
+        padding = 8 - bytesRead;
+        while (position < readBuffer.size())
+        {
+            if (position < 7)
+            {
+                readBuffer[position] = '0';
+            }
+            else
+            {
+                readBuffer[position] = (char) ((char) padding - '0');
+                //readBuffer[position] = getCharEquivilant(padding);
+            }
+            position += 1;
+        }
+    }
+    return readBuffer;
+}
+
+vector <unsigned char> DES_452::performDES(vector <unsigned char> readBuffer, int desAction)
+{
+    if (readBuffer.size() != 8)
+    {
+        cout << "Invalid Plaintext Length:  The length of plaintext must be 8." << endl;
+    }
+    DES_LONG myBlock [2];
+    //unsigned char txtText[8];
+    vector<unsigned char> txtText(8);
+    
+    myBlock[0] = ctol(& readBuffer.data()[0]);
+    cout << myBlock[0] << endl;
+    myBlock[1] = ctol(& readBuffer.data()[4]);
+    cout << myBlock[1] << endl;
+    
+    DES_encrypt1(myBlock, & this->key, desAction);
+    
+    ltoc(myBlock[0], & txtText.data()[0]);
+    ltoc(myBlock[1], & txtText.data()[4]);
+    
+    
+    //for (int i = 0; i < sizeof(txtText); ++i)
+    //    cout << txtText[i];
+    
+    return txtText;
+}
 /**
  * Function to pad a DES block if necessary.
  * @param  readBuffer - the block we want to verify padding for.
@@ -393,7 +444,7 @@ void DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
  * @return - the long integer (32 bits) where each byte
  * is equivalent to one of the bytes in a character array
  */
-DES_LONG DES::ctol(unsigned char *c)
+DES_LONG DES_452::ctol(unsigned char *c)
 {
 	/* The long integer */
 	DES_LONG l;
@@ -412,7 +463,7 @@ DES_LONG DES::ctol(unsigned char *c)
  * @param l - the long integer to convert
  * @param c - the character array to store the result
  */
-void DES::ltoc(DES_LONG l, unsigned char *c)
+void DES_452::ltoc(DES_LONG l, unsigned char *c)
 {
 	*((c)++) = (unsigned char)(l & 0xff);
 	*((c)++) = (unsigned char)(((l) >> 8L) & 0xff);
@@ -425,7 +476,7 @@ void DES::ltoc(DES_LONG l, unsigned char *c)
  * @param character - the character to convert
  * @return - the converted character, or 'z' on error
  */
-unsigned char DES::charToHex(const char& character)
+unsigned char DES_452::charToHex(const char& character)
 {
 	/* Is the first digit 0-9 ? */
 	if (character >= '0' && character <= '9')
@@ -450,7 +501,7 @@ unsigned char DES::charToHex(const char& character)
  * valud of two characters e.g. string "ab"
  * becomes hexadecimal integer 0xab.
  */
-unsigned char DES::twoCharToHexByte(const unsigned char* twoChars)
+unsigned char DES_452::twoCharToHexByte(const unsigned char* twoChars)
 {
 	/* The byte */
 	unsigned char singleByte;

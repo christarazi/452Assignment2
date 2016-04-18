@@ -68,7 +68,6 @@ class RSA_452: public CipherInterface
 	private:
 		RSA* pubKey;
 		RSA* privKey;
-
 };
 
 

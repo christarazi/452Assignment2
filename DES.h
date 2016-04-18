@@ -6,20 +6,20 @@
 #include <openssl/des.h>
 #include <string.h>
 #include <string>
-#include "CipherInterface.h"
 #include <ctype.h>
 #include <vector>
 #include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <iterator>
+#include "CipherInterface.h"
 
 using namespace std;
 
 /**
  * Implements a DES cipher
  */
-class DES: public CipherInterface
+class DES_452: public CipherInterface
 {
 	/* The public members */
 public:
