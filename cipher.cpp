@@ -74,15 +74,25 @@ void cleanExit(CipherInterface* c, int exitVal)
 
 int main(int argc, char** argv)
 {
-	if (argc < 2)
+	CipherType cType = UnknownType;
+	CipherAction action = UnknownAction;
+
+	if (argc == 6)
 	{
-		cout << "Usage: " << argv[0] << " <CIPHERTYPE> [<RSAPUBKEYFILE> <RSAPRIVKEYFILE>] <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
+		cType = getCipherType(string(argv[1]));
+		action = getCipherAction(string(argv[3]));
+	}
+	else if (argc == 7)
+	{
+		// Get the cipher type and the action to be performed.
+		cType = getCipherType(string(argv[1]));
+		action = getCipherAction(string(argv[4]));
+	}
+	else
+	{
+		cout << "Usage: " << argv[0] << " <CIPHERTYPE> <DESKEY> [<RSAPUBKEYFILE> <RSAPRIVKEYFILE>] <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
 		cleanExit(NULL, -1);
 	}
-
-	// Get the cipher type and the action to be performed.
-	CipherType cType = getCipherType(string(argv[1]));
-	CipherAction action = getCipherAction(string(argv[4]));
 
 	// Create an instance of cipher.
 	CipherInterface * cipher;
@@ -114,52 +124,60 @@ int main(int argc, char** argv)
 
 	if (cType == DESType)
 	{
-		if (argc != 5)
+		/* Set the encryption key
+		 * A valid key comprises 16 hexadecimal characters. Below is one example.
+		 * Your program should take input from command line.
+		 */
+		if (!cipher->setKey((unsigned char*) argv[2]))
 		{
-			cout << "Usage: " << argv[0] << " DES <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
+			cout << "Error: invalid key\n";
 			cleanExit(cipher, -1);
 		}
 
-		/* Set the encryption key
-		 * A valid key comprises 16 hexadecimal
-		 * characters. Below is one example.
-		 * Your program should take input from
-		 * command line.
-		 */
-		cipher->setKey((unsigned char*) "0123456789abcdef");
+		switch (action)
+		{
+		case ENC:
+			// Perform encryption.
+			cipher->encrypt((unsigned char*) argv[4], (unsigned char*) argv[5]);
+			break;
+		case DEC:
+			// Perform decryption.
+			cipher->decrypt((unsigned char*) argv[4], (unsigned char*) argv[5]);
+			break;
+		case UnknownAction:
+			cout << "Unknown action\n";
+			cleanExit(cipher, -1);
+			break;
+		default:
+			break;
+		}
 	}
 	else if (cType == RSAType)
 	{
-		if (argc != 7)
-		{
-			cout << "Usage: " << argv[0] << " RSA <PUBKEYFILE> <PRIVKEYFILE> <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
-			cleanExit(cipher, -1);
-		}
-
 		cipher->setKey((unsigned char*) argv[2], (unsigned char*) argv[3]);
+
+		switch (action)
+		{
+		case ENC:
+			// Perform encryption.
+			cipher->encrypt((unsigned char*) argv[5], (unsigned char*) argv[6]);
+			break;
+		case DEC:
+			// Perform decryption.
+			cipher->decrypt((unsigned char*) argv[5], (unsigned char*) argv[6]);
+			break;
+		case UnknownAction:
+			cout << "Unknown action\n";
+			cleanExit(cipher, -1);
+			break;
+		default:
+			break;
+		}
 	}
 	else
 	{
 		cout << "Strange error\n";
 		cleanExit(cipher, -1);
-	}
-
-	switch (action)
-	{
-	case ENC:
-		// Perform encryption.
-		cipher->encrypt((unsigned char*) argv[5], (unsigned char*) argv[6]);
-		break;
-	case DEC:
-		// Perform decryption.
-		cipher->decrypt((unsigned char*) argv[5], (unsigned char*) argv[6]);
-		break;
-	case UnknownAction:
-		cout << "Unknown action\n";
-		cleanExit(cipher, -1);
-		break;
-	default:
-		break;
 	}
 
 	delete cipher;
