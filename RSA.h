@@ -45,18 +45,18 @@ class RSA_452: public CipherInterface
 		 * Encrypt the file at plaintextFileIn and output at ciphertextFileOut.
 		 * @param  plaintextFileIn   - the file to encrypt.
 		 * @param  ciphertextFileOut - the encrypted output file.
-		 * @return 					 - void
+		 * @return 					 - true if successful, false otherwise.
 		 */
-		virtual void encrypt(const unsigned char* plaintextFileIn,
+		virtual bool encrypt(const unsigned char* plaintextFileIn,
 							 const unsigned char* ciphertextFileOut);
 
 		/**
 		 * Decrypt the file at ciphertextFileIn and output at plaintextFileOut.
 		 * @param  ciphertextFileIn - the file to decrypt.
 		 * @param  plaintextFileOut - the decrypted output file.
-		 * @return                  - void
+		 * @return                  - true if successful, false otherwise.
 		 */
-		virtual void decrypt(const unsigned char* ciphertextFileIn,
+		virtual bool decrypt(const unsigned char* ciphertextFileIn,
 							 const unsigned char* plaintextFileOut);
 
 		/**

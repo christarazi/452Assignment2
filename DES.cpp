@@ -1,14 +1,22 @@
 #include "DES.h"
-#include <iostream>
 
 using namespace std;
 
 #define MAX_DES_BYTES 8
 
 /**
+ * The default constructor to initialize the initialization vector.
+ */
+DES::DES(DESMode mode)
+{
+	this->desMode = mode;
+	this->initVec = vector<unsigned char>(MAX_DES_BYTES);
+}
+
+/**
  * Sets the key to use
- * @param key - the key to use
- * @return - True if the key is valid and False otherwise
+ * @param key 	- the key to use.
+ * @return 		- true if the key is valid and false otherwise.
  */
 bool DES::setKey(const unsigned char* keyArray)
 {
@@ -29,7 +37,10 @@ bool DES::setKey(const unsigned char* keyArray)
 	{
 		/* Convert the key if the character is valid */
 		if ((this->des_key[desKeyIndex] = twoCharToHexByte(keyArray + keyIndex)) == 'z')
+		{
+			fprintf(stderr, "\nkey is invalid %d\n", keyErrorCode);
 			return false;
+		}
 
 		/* Go to the second pair of characters */
 		keyIndex += 2;
@@ -38,9 +49,10 @@ bool DES::setKey(const unsigned char* keyArray)
 		++desKeyIndex;
 	}
 
-	//fprintf(stdout, "DES KEY: ");
-
+	// Set the key to have odd parity. All DES keys must have odd parity.
 	DES_set_odd_parity(&this->des_key);
+
+	//fprintf(stdout, "DES KEY: ");
 
 	/* Print the key */
 	// for (keyIndex = 0; keyIndex < 8; ++keyIndex)
@@ -52,7 +64,14 @@ bool DES::setKey(const unsigned char* keyArray)
 	if ((keyErrorCode = des_set_key_checked(&this->des_key, this->key)) != 0)
 	{
 		fprintf(stderr, "\nkey error %d\n", keyErrorCode);
+		return false;
+	}
 
+	// Generate the initialization vector.
+	if ((keyErrorCode = RAND_bytes(this->initVec.data(), MAX_DES_BYTES)) == 0)
+	{
+		ERR_get_error();
+		fprintf(stderr, "\ninit vec error %d\n", keyErrorCode);
 		return false;
 	}
 
@@ -63,105 +82,88 @@ bool DES::setKey(const unsigned char* keyArray)
 /**
  * Function to pad a DES block if necessary.
  * @param  readBuffer - the block we want to verify padding for.
- * @param  bytesRead  - the number of we've read from the file.
+ * @param  padding 	  - the number of pad bytes needed.
  * @return readBuffer - the padded buffer.
  */
-vector<unsigned char> DES::verifyPadding(vector<unsigned char> readBuffer, int bytesRead)
+vector<unsigned char> DES::padBlock(vector<unsigned char> readBuffer, int padding)
 {
-	int padding, position;
+	// Get the position at which we must pad.
+	int position = MAX_DES_BYTES - padding;
 
-	// If bytesRead is not equal to MAX_DES_BYTES, then we need to pad readBuffer.
-	if (bytesRead != MAX_DES_BYTES)
-	{
-		// Number of pad bytes needed.
-		padding = MAX_DES_BYTES - bytesRead;
-
-		// Starting position to insert pad bytes.
-		position = MAX_DES_BYTES - padding;
-		//cout << "This block requires " << padding << " pads.\n";
-
-		// Loop until we fill up the entire block.
-		// Filling readBuffer with number of pad bytes as the padding.
-		while (position < MAX_DES_BYTES)
-		{
-			readBuffer[position] = padding;
-			position += 1;
-		}
-	}
+	for (; position < MAX_DES_BYTES; ++position)
+		readBuffer[position] = (unsigned char) padding;
 
 	return readBuffer;
 }
 
 /**
  * Function to perform DES encryption / decryption based on desAction.
- * @param  readBuffer - the block we want to encrypt / decrypt.
+ * @param  block 	  - the block we want to encrypt / decrypt.
  * @param  desAction  - the action to perform.
  * @return desBlock   - the encrypted / decrypted block.
  */
-vector<unsigned char> DES::performDES(vector<unsigned char> readBuffer, int desAction)
+vector<unsigned char> DES::performDES(vector<unsigned char> block, int desAction)
 {
-	if (readBuffer.size() != MAX_DES_BYTES)
-		cout << "Invalid Plaintext Length:  The length of plaintext must be 8." << endl;
-
-	DES_LONG myBlock [2];
+	DES_LONG desBlockLong [2];
 	vector<unsigned char> desBlock(MAX_DES_BYTES);
 
 	// Convert block to two long integers.
-	myBlock[0] = ctol(& readBuffer.data()[0]);
-	myBlock[1] = ctol(& readBuffer.data()[4]);
+	desBlockLong[0] = ctol(&block.data()[0]);
+	desBlockLong[1] = ctol(&block.data()[4]);
 
 	// Perform action.
-	DES_encrypt1(myBlock, & this->key, desAction);
+	DES_encrypt1(desBlockLong, &this->key, desAction);
 
 	// Convert two long integers back to bytes.
-	ltoc(myBlock[0], & desBlock.data()[0]);
-	ltoc(myBlock[1], & desBlock.data()[4]);
+	ltoc(desBlockLong[0], &desBlock.data()[0]);
+	ltoc(desBlockLong[1], &desBlock.data()[4]);
 
 	return desBlock;
 }
 
 /**
  * Function to perform DES in CBC mode.
- * @param  readBlock 	- the ibput block from the file.
+ * @param  readBlock 	- the input block from the file.
  * @param  cipherBlock  - pass-by-reference vector holding the previous block for chaining.
- * @param  initVec  	- the initialization vector.
  * @param  action  		- the action to perform (ENC == 1/ DEC == 0).
  * @param  firstRun  	- indicates where this is first run through CBC or not.
  * @return 				- return new vector based on action.
  */
-vector<unsigned char> DES::performCBC(vector<unsigned char> readBlock, vector<unsigned char> & cipherBlock,
-                                      vector<unsigned char> initVec, bool action, bool & firstRun)
+vector<unsigned char> DES::performCBC(vector<unsigned char> readBlock, vector<unsigned char> &cipherBlock,
+                                      bool action, bool &firstRun)
 {
 	// If we are encrypting then proceed, otherwise we go to the else block.
 	if (action)
 	{
 		DES_LONG cipherBlockLong[2], plaintextBlockLong[2], result[2];
 
-		// If this is the first run through, then use the initVec.
-		// Else, use the previous block, which is cipherBlock.
+		/**
+		 * If this is the first run through, then use the initVec.
+		 * Else, use the previous block, which is cipherBlock.
+		 */
 		if (firstRun)
 		{
-			cipherBlockLong[0] = ctol(& initVec.data()[0]);
-			cipherBlockLong[1] = ctol(& initVec.data()[4]);
+			cipherBlockLong[0] = ctol(&this->initVec.data()[0]);
+			cipherBlockLong[1] = ctol(&this->initVec.data()[4]);
 			firstRun = false;
 		}
 		else
 		{
-			cipherBlockLong[0] = ctol(& cipherBlock.data()[0]);
-			cipherBlockLong[1] = ctol(& cipherBlock.data()[4]);
+			cipherBlockLong[0] = ctol(&cipherBlock.data()[0]);
+			cipherBlockLong[1] = ctol(&cipherBlock.data()[4]);
 		}
 
 		// Convert plaintext into long integers.
-		plaintextBlockLong[0] = ctol(& readBlock.data()[0]);
-		plaintextBlockLong[1] = ctol(& readBlock.data()[4]);
+		plaintextBlockLong[0] = ctol(&readBlock.data()[0]);
+		plaintextBlockLong[1] = ctol(&readBlock.data()[4]);
 
 		// Perform XORs between cipher and plaintext.
 		result[0] = cipherBlockLong[0] ^ plaintextBlockLong[0];
 		result[1] = cipherBlockLong[1] ^ plaintextBlockLong[1];
 
 		// Convert result back to bytes and store in cipherBlock.
-		ltoc(result[0], & cipherBlock.data()[0]);
-		ltoc(result[1], & cipherBlock.data()[4]);
+		ltoc(result[0], &cipherBlock.data()[0]);
+		ltoc(result[1], &cipherBlock.data()[4]);
 
 		// Perform encryption on the cipherBlock.
 		vector<unsigned char> encryptedBuffer = performDES(cipherBlock, 1);  //1 for encrypting
@@ -177,33 +179,34 @@ vector<unsigned char> DES::performCBC(vector<unsigned char> readBlock, vector<un
 
 		// Perform decryption on the input block.
 		vector<unsigned char> decryptedBlock = performDES(readBlock, 0);  //0 for decrypting
-		
-		// If this is the first run through, then use the initVec to convert to long integers.
-		// Else, use the previous block, which is cipherBlock, to convert to long integers.
+
+		/**
+		 * If this is the first run through, then use the initVec to convert to long integers.
+		 * Else, use the previous block, which is cipherBlock, to convert to long integers.
+		 */
 		if (firstRun)
 		{
-			cipherBlockLong[0] = ctol(& initVec.data()[0]);
-			cipherBlockLong[1] = ctol(& initVec.data()[4]);
-
+			cipherBlockLong[0] = ctol(&this->initVec.data()[0]);
+			cipherBlockLong[1] = ctol(&this->initVec.data()[4]);
 			firstRun = false;
 		}
 		else
 		{
-			cipherBlockLong[0] = ctol(& cipherBlock.data()[0]);
-			cipherBlockLong[1] = ctol(& cipherBlock.data()[4]);
+			cipherBlockLong[0] = ctol(&cipherBlock.data()[0]);
+			cipherBlockLong[1] = ctol(&cipherBlock.data()[4]);
 		}
 
 		// Convert decrypted block to long integers.
-		decryptedBlockLong[0] = ctol(& decryptedBlock.data()[0]);
-		decryptedBlockLong[1] = ctol(& decryptedBlock.data()[4]);
+		decryptedBlockLong[0] = ctol(&decryptedBlock.data()[0]);
+		decryptedBlockLong[1] = ctol(&decryptedBlock.data()[4]);
 
 		// Perform XORs between cipher block and decrypted block.
 		result[0] = cipherBlockLong[0] ^ decryptedBlockLong[0];
 		result[1] = cipherBlockLong[1] ^ decryptedBlockLong[1];
 
 		// Convert result back to bytes and store in decryptedBlock.
-		ltoc(result[0], & decryptedBlock.data()[0]);
-		ltoc(result[1], & decryptedBlock.data()[4]);
+		ltoc(result[0], &decryptedBlock.data()[0]);
+		ltoc(result[1], &decryptedBlock.data()[4]);
 
 		// Store the input block in cipherBlock the next step in the chaining process.
 		cipherBlock = readBlock;
@@ -216,37 +219,78 @@ vector<unsigned char> DES::performCBC(vector<unsigned char> readBlock, vector<un
  * Encrypt the file at plaintextFileIn and output at ciphertextFileOut.
  * @param  plaintextFileIn   - the file to encrypt.
  * @param  ciphertextFileOut - the encrypted output file.
- * @return 					 - void
+ * @return 					 - true if successful, false otherwise.
  */
-void DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* ciphertextFileOut)
+bool DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* ciphertextFileOut)
 {
-	bool doCBC = true, isFirstRun = true;
+	bool ecb = false, cbc = false, cfb = false, isFirstRun = true;
+
+	// Set the appropriate mode of encryption.
+	switch (this->desMode)
+	{
+	case ECB: ecb = true; break;
+	case CBC: cbc = true; break;
+	case CFB: cfb = true; break;
+	case UnknownMode:
+		cerr << "Error in encryption: unknown mode detected\n";
+		return false;
+	default:
+		cerr << "Error in decryption: could not read mode\n";
+		return false;
+	}
 
 	// Open files in binary mode.
 	fstream fIn((char*) plaintextFileIn, ios::in | ios::binary);
 	fstream fOut((char*) ciphertextFileOut, ios::out | ios::binary);
 
-	// readBuffer must be of size 8 because that's the
-	// maximum number of bytes DES takes in for encryption.
-	// encryptedBuffer is of size 8 because that's the number of bytes DES outputs.
+	/**
+	 * readBuffer must be of size 8 because that's the
+	 * 	maximum number of bytes DES takes in for encryption.
+	 * 	encryptedBuffer is of size 8 because that's the number of bytes DES outputs.
+	 */
 	vector<unsigned char> readBuffer(MAX_DES_BYTES);
 	vector<unsigned char> encryptedBuffer(MAX_DES_BYTES);
 	vector<unsigned char> cipherBuffer(MAX_DES_BYTES);
-	vector<unsigned char> initializationVec(MAX_DES_BYTES);
 
 	// Fill the buffers with zeros.
 	fill(readBuffer.begin(), readBuffer.end(), 0);
 	fill(encryptedBuffer.begin(), encryptedBuffer.end(), 0);
 	fill(cipherBuffer.begin(), cipherBuffer.end(), 0);
-	fill(initializationVec.begin(), initializationVec.end(), 1);
 
 	int totalBytesRead = 0;
 	int totalBytesWritten = 0;
-	int encryptedBytes = 0;
+	unsigned char numPadBytes[1];
 
 	// Make sure both file streams were able to open the files.
 	if (fIn.is_open() && fOut.is_open())
 	{
+		/**
+		 * Write out the initialization vector to the encrypted file
+		 * so the decryption algorithm may know it.
+		 */
+		fOut.write((char*) this->initVec.data(), MAX_DES_BYTES);
+
+		// stat() call initializes fileStat with the file attributes.
+		if (stat((char*) plaintextFileIn, &this->fileStat) == -1)
+		{
+			perror("stat");
+			return false;
+		}
+
+		// Get the file size.
+		uint64_t fileSize = (uint64_t) this->fileStat.st_size;
+
+		// Number of pad bytes is MAX_DES_BYTES - (fileSize % MAX_DES_BYTES).
+		if ((fileSize % MAX_DES_BYTES) == 0)
+			numPadBytes[0] = 0;
+		else
+			numPadBytes[0] = MAX_DES_BYTES - (fileSize % MAX_DES_BYTES);
+
+		//cout << "Number of pad bytes needed: " << (int) numPadBytes[0] << endl;
+
+		// Write number of pad bytes at the beginning of the file.
+		fOut.write((char*) numPadBytes, 1);
+
 		// Loop while there is still data to be read from the file.
 		while (fIn.good())
 		{
@@ -259,19 +303,30 @@ void DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 			if (bytesRead == 0)
 				break;
 
-			// Make sure the block is padded if necessary.
-			readBuffer = verifyPadding(readBuffer, bytesRead);
-
-			// Check if we are doing CBC. Else perform normal DES encryption.
-			if (doCBC)
+			/**
+			 * We only need to pad the last block, so we check if we're at EOF.
+			 *
+			 * Note: .peek() looks at the next character in the fstream
+			 * without extracting it (advancing the pointer), however, if the
+			 * next character is EOF, then the EOF bit will be triggered,
+			 * which technically advances the pointer.
+			 */
+			if (fIn.peek() == EOF)
 			{
-				if (isFirstRun)
-					encryptedBuffer = performCBC(readBuffer, cipherBuffer, initializationVec, 1, isFirstRun);
-				else
-					encryptedBuffer = performCBC(readBuffer, cipherBuffer, initializationVec, 1, isFirstRun);
+				//cout << "padding with " << (int) numPadBytes[0] << " bytes\n";
+				readBuffer = padBlock(readBuffer, (int) numPadBytes[0]);
 			}
-			else
+
+			/**
+			 * Check which mode we are using.
+			 * 1 means encryption, 0 means decryption.
+			 */
+			if (ecb)
 				encryptedBuffer = performDES(readBuffer, 1);
+			else if (cbc)
+				encryptedBuffer = performCBC(readBuffer, cipherBuffer, 1, isFirstRun);
+			else
+				return false;
 
 			// Fancy C++11 function to copy encryptedBuffer to output file.
 			copy(begin(encryptedBuffer), end(encryptedBuffer),
@@ -283,97 +338,105 @@ void DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 		perror("is_open");
 		fIn.close();
 		fOut.close();
-		exit(-1);
+		return false;
 	}
+
+	return true;
 }
 
 /**
  * Decrypt the file at ciphertextFileIn and output at plaintextFileOut.
  * @param  ciphertextFileIn - the file to decrypt.
  * @param  plaintextFileOut - the decrypted output file.
- * @return                  - void
+ * @return                  - true if successful, false otherwise.
  */
-void DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* ciphertextFileOut)
+bool DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* ciphertextFileOut)
 {
-	bool doCBC = true, isFirstRun = true;
+	bool ecb = false, cbc = false, cfb = false, isFirstRun = true;
+
+	// Set the appropriate mode of decryption.
+	switch (this->desMode)
+	{
+	case ECB: ecb = true; break;
+	case CBC: cbc = true; break;
+	case CFB: cfb = true; break;
+	case UnknownMode:
+		cerr << "Error in decryption: unknown mode detected\n";
+		return false;
+	default:
+		cerr << "Error in decryption: could not read mode\n";
+		return false;
+	}
 
 	// Open files in binary mode.
 	fstream fIn((char*) plaintextFileIn, ios::in | ios::binary);
 	fstream fOut((char*) ciphertextFileOut, ios::out | ios::binary);
 
-	// readBuffer must be of size 215 because that's the maximum number of
-	// bytes RSA takes in for encryption (because of padding).
-	// decryptedBuffer is of size 256 because that's the number of bytes RSA outputs.
+	/**
+	 * readBuffer must be of size 8 because that's the
+	 * 	maximum number of bytes DES takes in for encryption.
+	 * 	encryptedBuffer is of size 8 because that's the number of bytes DES outputs.
+	 */
 	vector<unsigned char> readBuffer(MAX_DES_BYTES);
 	vector<unsigned char> decryptedBuffer(MAX_DES_BYTES);
 	vector<unsigned char> cipherBuffer(MAX_DES_BYTES);
-	vector<unsigned char> initializationVec(MAX_DES_BYTES);
 
 	// Fill the buffers with zeros.
 	fill(readBuffer.begin(), readBuffer.end(), 0);
 	fill(decryptedBuffer.begin(), decryptedBuffer.end(), 0);
 	fill(cipherBuffer.begin(), cipherBuffer.end(), 0);
-	fill(initializationVec.begin(), initializationVec.end(), 1);
 
 	int totalBytesRead = 0;
 	int totalBytesWritten = 0;
-	int encryptedBytes = 0;
+	int padBytes;
+	unsigned char numPadBytes[1];
 
 	// Make sure both file streams were able to open the files.
 	if (fIn.is_open() && fOut.is_open())
 	{
+		/**
+		 * Read in the initialization vector from the encrypted file
+		 * so the decryption algorithm can decrypt correctly.
+		 */
+		fIn.read((char*) this->initVec.data(), MAX_DES_BYTES);
+
+		// Read the pad byte from the file.
+		fIn.read((char*) numPadBytes, 1);
+
+		//cout << "Found pad byte: " << (int) numPadBytes[0] << endl;
+
 		// Loop while there is still data to be read from the file.
 		while (fIn.good())
 		{
-			// Read the max number of bytes (which is 8 here)
-			// and store it in the readBuffer.
+			/**
+			 * Read the max number of bytes (which is 8 here)
+			 * and store it in the readBuffer.
+			 */
 			fIn.read((char*) readBuffer.data(), MAX_DES_BYTES);
 			int bytesRead = fIn.gcount();
 
-			// Break if we didn't read any bytes.
-			if (bytesRead == 0)
-				break;
-
-			// Check if we are doing CBC. Else perform normal DES decryption.
-			if (doCBC)
-			{
-				if (isFirstRun)
-					decryptedBuffer = performCBC(readBuffer, cipherBuffer, initializationVec, 0, isFirstRun);
-				else
-					decryptedBuffer = performCBC(readBuffer, cipherBuffer, initializationVec, 0, isFirstRun);
-			}
-			else
+			/**
+			 * Check which mode we are using.
+			 * 1 means encryption, 0 means decryption.
+			 */
+			if (ecb)
 				decryptedBuffer = performDES(readBuffer, 0);
-
-			// Detect pad bytes and remove them.
-			int padBytes = (int) decryptedBuffer[MAX_DES_BYTES - 1];
-			if (padBytes >= 1 && padBytes <= 7)
-			{
-				//cout << "Detected padding: " << padBytes << " bytes\n";
-				// Start from the second to last element in decryptedBuffer.
-				// Make sure there's padBytes amount of padding.
-				// If not, then we did not detect padding.
-				for (unsigned int i = 0; i < padBytes; ++i)
-				{
-					//printf("Checking if decryptedBuffer[%u] is %02x\n", MAX_DES_BYTES - i - 1, (unsigned char) padBytes);
-					if (decryptedBuffer[MAX_DES_BYTES - i - 1] != padBytes)
-					{
-						padBytes = 0;
-						break;
-					}
-					// else
-					// 	cout << "Found pad byte\n";
-				}
-			}
+			else if (cbc)
+				decryptedBuffer = performCBC(readBuffer, cipherBuffer, 0, isFirstRun);
 			else
-				padBytes = 0;
+				return false;
 
-			// if (padBytes != 0)
-			// {
-			// 	cout << "Trimming " << padBytes << " bytes\n\n";
-			// }
+			/**
+			 * Note: .peek() looks at the next character in the fstream
+			 * without extracting it (advancing the pointer), however, if the
+			 * next character is EOF, then the EOF bit will be triggered,
+			 * which technically advances the pointer.
+			 *
+			 * If next byte is EOF, set padBytes to number of bytes.
+			 * Else padBytes is 0.
+			 */
+			fIn.peek() == EOF ? padBytes = numPadBytes[0] : padBytes = 0;
 
-			// Fancy C++11 function to copy decryptedBuffer to output file.
 			copy(begin(decryptedBuffer), end(decryptedBuffer) - padBytes,
 			     ostream_iterator<unsigned char>(fOut, ""));
 		}
@@ -383,16 +446,18 @@ void DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 		perror("is_open");
 		fIn.close();
 		fOut.close();
-		exit(-1);
+		return false;
 	}
+
+	return true;
 }
 
 /**
- * Converts an array of 8 characters
+ * Converts an array of 8 characters to longs.
  * (i.e. 4 bytes/32 bits)
- * @param c - the array of 4 characters (i.e. 1-byte per/character
- * @return - the long integer (32 bits) where each byte
- * is equivalent to one of the bytes in a character array
+ * @param c 	- the array of 4 characters (i.e. 1-byte per/character)
+ * @return 		- the long integer (32 bits) where each byte is equivalent
+ *             		to one of the bytes in a character array
  */
 DES_LONG DES::ctol(unsigned char *c)
 {
@@ -403,6 +468,7 @@ DES_LONG DES::ctol(unsigned char *c)
 	l = l | (((DES_LONG)(*((c)++))) << 8L);
 	l = l | (((DES_LONG)(*((c)++))) << 16L);
 	l = l | (((DES_LONG)(*((c)++))) << 24L);
+
 	return l;
 };
 
@@ -424,7 +490,7 @@ void DES::ltoc(DES_LONG l, unsigned char *c)
 /**
  * Converts a character into a hexadecimal integer
  * @param character - the character to convert
- * @return - the converted character, or 'z' on error
+ * @return 			- the converted character, or 'z' on error
  */
 unsigned char DES::charToHex(const char& character)
 {
@@ -441,15 +507,11 @@ unsigned char DES::charToHex(const char& character)
 }
 
 /**
- * Converts two characters into a hex integers
- * and then inserts the integers into the higher
- * and lower bits of the byte
- * @param twoChars - two characters representing the
- * the hexadecimal nibbles of the byte.
- * @param twoChars - the two characters
- * @return - the byte containing having the
- * valud of two characters e.g. string "ab"
- * becomes hexadecimal integer 0xab.
+ * Converts two characters into a hex integers and then inserts
+ * the integers into the higher and lower bits of the byte
+ * @param twoChars 	- two characters representing the hexadecimal nibbles of the byte.
+ * @return 			- the byte containing having the value of two
+ *              	characters e.g. string "ab" becomes hexadecimal integer 0xab.
  */
 unsigned char DES::twoCharToHexByte(const unsigned char* twoChars)
 {

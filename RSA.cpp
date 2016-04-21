@@ -48,9 +48,9 @@ bool RSA_452::setKey(const unsigned char* publicKeyFile, const unsigned char* pr
  * Encrypt the file at plaintextFileIn and output at ciphertextFileOut.
  * @param  plaintextFileIn   - the file to encrypt.
  * @param  ciphertextFileOut - the encrypted output file.
- * @return 					 - void
+ * @return 					 - true if successful, false otherwise.
  */
-void RSA_452::encrypt(const unsigned char* plaintextFileIn,
+bool RSA_452::encrypt(const unsigned char* plaintextFileIn,
                       const unsigned char* ciphertextFileOut)
 {
 	cout << "Starting encryption...\n\n";
@@ -59,9 +59,11 @@ void RSA_452::encrypt(const unsigned char* plaintextFileIn,
 	fstream fIn((char*) plaintextFileIn, ios::in | ios::binary);
 	fstream fOut((char*) ciphertextFileOut, ios::out | ios::binary);
 
-	// readBuffer must be of size 215 because that's the maximum number of
-	// bytes RSA takes in for encryption (because of padding).
-	// writeBuffer is of size 256 because that's the number of bytes RSA outputs.
+	/**
+	 * readBuffer must be of size 215 because that's the maximum number of
+	 * bytes RSA takes in for encryption (because of padding).
+	 * writeBuffer is of size 256 because that's the number of bytes RSA outputs.
+	 */
 	vector<unsigned char> readBuffer(ENC_READ_MAX);
 	vector<unsigned char> writeBuffer(WRITE_MAX);
 
@@ -82,8 +84,10 @@ void RSA_452::encrypt(const unsigned char* plaintextFileIn,
 		// Loop while there is still data to be read from the file.
 		while (fIn.good())
 		{
-			// Read the max number of bytes (which is 214 here)
-			// and store it in the readBuffer.
+			/**
+			 * Read the max number of bytes (which is 214 here)
+			 * and store it in the readBuffer.
+			 */
 			fIn.read((char*) readBuffer.data(), ENC_READ_MAX - 1);
 			int bytesRead = fIn.gcount();
 
@@ -91,7 +95,7 @@ void RSA_452::encrypt(const unsigned char* plaintextFileIn,
 			if (bytesRead == 0)
 				break;
 
-			cout << "Read " << bytesRead << " bytes" << endl;
+			//cout << "Read " << bytesRead << " bytes" << endl;
 			// cout << "Plaintext:\n" << (char*) readBuffer.data() << endl;
 
 			// Perform encryption on the block we just read and store it in writeBuffer.
@@ -106,7 +110,7 @@ void RSA_452::encrypt(const unsigned char* plaintextFileIn,
 			totalBytesWritten += encryptedBytes;
 			totalBytesRead += bytesRead;
 
-			cout << "Encrypted " << encryptedBytes << " bytes" << endl;
+			//cout << "Encrypted " << encryptedBytes << " bytes" << endl;
 
 			// Fancy C++11 function to copy writeBuffer to output file.
 			copy(begin(writeBuffer), end(writeBuffer),
@@ -123,7 +127,7 @@ void RSA_452::encrypt(const unsigned char* plaintextFileIn,
 		perror("is_open");
 		fIn.close();
 		fOut.close();
-		exit(-1);
+		return false;
 	}
 
 	cout << "Total bytes read: " << totalBytesRead << "\n";
@@ -133,27 +137,27 @@ void RSA_452::encrypt(const unsigned char* plaintextFileIn,
 	fIn.close();
 	fOut.close();
 
-	return;
+	return true;
 }
 
 /**
  * Decrypt the file at ciphertextFileIn and output at plaintextFileOut.
  * @param  ciphertextFileIn - the file to decrypt.
  * @param  plaintextFileOut - the decrypted output file.
- * @return                  - void
+ * @return                  - true if successful, false otherwise.
  */
-void RSA_452::decrypt(const unsigned char* ciphertextFileIn,
+bool RSA_452::decrypt(const unsigned char* ciphertextFileIn,
                       const unsigned char* plaintextFileOut)
 {
-	cout << "Starting decryption...\n\n";
-
 	// Open files in binary mode.
 	fstream fIn((char*) ciphertextFileIn, ios::in | ios::binary);
 	fstream fOut((char*) plaintextFileOut, ios::out | ios::binary);
 
-	// readBuffer must be of size 256 because that's the maximum number of
-	// bytes RSA takes in for decryption (because of padding).
-	// writeBuffer is of size 256 because that's the number of bytes RSA outputs.
+	/**
+	 * readBuffer must be of size 215 because that's the maximum number of
+	 * bytes RSA takes in for encryption (because of padding).
+	 * writeBuffer is of size 256 because that's the number of bytes RSA outputs.
+	 */
 	vector<unsigned char> readBuffer(DEC_READ_MAX);
 	vector<unsigned char> writeBuffer(WRITE_MAX);
 
@@ -174,8 +178,10 @@ void RSA_452::decrypt(const unsigned char* ciphertextFileIn,
 		// Loop while there is still data to be read from the file.
 		while (fIn.good())
 		{
-			// Read the max number of bytes (which is 256 here)
-			// and store it in the readBuffer.
+			/**
+			 * Read the max number of bytes (which is 214 here)
+			 * and store it in the readBuffer.
+			 */
 			fIn.read((char*) readBuffer.data(), DEC_READ_MAX);
 			int bytesRead = fIn.gcount();
 
@@ -183,7 +189,7 @@ void RSA_452::decrypt(const unsigned char* ciphertextFileIn,
 			if (bytesRead == 0)
 				break;
 
-			cout << "Read " << bytesRead << " bytes" << endl;
+			//cout << "Read " << bytesRead << " bytes" << endl;
 			// cout << "Ciphertext:\n";
 			// for (auto && i : readBuffer)
 			// 	printf("%02x ", i);
@@ -201,7 +207,7 @@ void RSA_452::decrypt(const unsigned char* ciphertextFileIn,
 			totalBytesWritten += decryptedBytes;
 			totalBytesRead += bytesRead;
 
-			cout << "Decrypted " << decryptedBytes << " bytes" << endl;
+			//cout << "Decrypted " << decryptedBytes << " bytes" << endl;
 
 			// Fancy C++11 function to copy writeBuffer to output file.
 			copy(begin(writeBuffer), begin(writeBuffer) + decryptedBytes,
@@ -215,7 +221,7 @@ void RSA_452::decrypt(const unsigned char* ciphertextFileIn,
 		perror("is_open");
 		fIn.close();
 		fOut.close();
-		exit(-1);
+		return false;
 	}
 
 	cout << "Total bytes read: " << totalBytesRead << "\n";
@@ -225,7 +231,7 @@ void RSA_452::decrypt(const unsigned char* ciphertextFileIn,
 	fIn.close();
 	fOut.close();
 
-	return;
+	return true;
 }
 
 /**

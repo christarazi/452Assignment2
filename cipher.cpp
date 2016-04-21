@@ -1,65 +1,9 @@
-#include <iostream>
-#include <string>
-#include <algorithm>
 #include "CipherInterface.h"
 #include "DES.h"
 #include "RSA.h"
+#include "Utils.h"
 
 using namespace std;
-
-enum CipherType
-{
-	DESType,
-	RSAType,
-	UnknownType
-};
-
-enum CipherAction
-{
-	ENC,
-	DEC,
-	UnknownAction
-};
-
-/**
- * Get the type of cipher supplied by the user.
- * @param  arg 	- the argument supplied by the user.
- * @return type - the type of cipher.
- */
-CipherType getCipherType(string arg)
-{
-	CipherType type;
-	transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
-
-	if (arg.compare("des") == 0)
-		type = DESType;
-	else if (arg.compare("rsa") == 0)
-		type = RSAType;
-	else
-		type = UnknownType;
-
-	return type;
-}
-
-/**
- * Get the type of action (encryption or decryption) supplied by the user.
- * @param  arg 		- the argument supplied by the user
- * @return action 	- the corresponding type of action
- */
-CipherAction getCipherAction(string arg)
-{
-	CipherAction action;
-	transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
-
-	if (arg.compare("enc") == 0)
-		action = ENC;
-	else if (arg.compare("dec") == 0)
-		action = DEC;
-	else
-		action = UnknownAction;
-
-	return action;
-}
 
 /**
  * Function to perform a clean exit.
@@ -77,20 +21,15 @@ int main(int argc, char** argv)
 	CipherType cType = UnknownType;
 	CipherAction action = UnknownAction;
 
-	if (argc == 6)
+	if (argc == 7)
 	{
-		cType = getCipherType(string(argv[1]));
-		action = getCipherAction(string(argv[3]));
-	}
-	else if (argc == 7)
-	{
-		// Get the cipher type and the action to be performed.
 		cType = getCipherType(string(argv[1]));
 		action = getCipherAction(string(argv[4]));
 	}
 	else
 	{
-		cout << "Usage: " << argv[0] << " <CIPHERTYPE> <DESKEY> [<RSAPUBKEYFILE> <RSAPRIVKEYFILE>] <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
+		cout << "Usage: DES" << argv[0] << " <CIPHERTYPE> <DESKEY> <MODE> <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
+		cout << "Usage: RSA" << argv[0] << " <CIPHERTYPE> <RSAPUBKEYFILE> <RSAPRIVKEYFILE> <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
 		cleanExit(NULL, -1);
 	}
 
@@ -101,7 +40,7 @@ int main(int argc, char** argv)
 	switch (cType)
 	{
 	case DESType:
-		cipher = new DES();
+		cipher = new DES(getDESMode(string(argv[3])));
 		break;
 	case RSAType:
 		cipher = new RSA_452();
@@ -138,11 +77,11 @@ int main(int argc, char** argv)
 		{
 		case ENC:
 			// Perform encryption.
-			cipher->encrypt((unsigned char*) argv[4], (unsigned char*) argv[5]);
+			cipher->encrypt((unsigned char*) argv[5], (unsigned char*) argv[6]);
 			break;
 		case DEC:
 			// Perform decryption.
-			cipher->decrypt((unsigned char*) argv[4], (unsigned char*) argv[5]);
+			cipher->decrypt((unsigned char*) argv[5], (unsigned char*) argv[6]);
 			break;
 		case UnknownAction:
 			cout << "Unknown action\n";

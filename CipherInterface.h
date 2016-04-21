@@ -25,7 +25,7 @@ public:
 	 * @param key 	- the key to use.
 	 * @return 		- True if the key is valid and False otherwise.
 	 */
-	virtual bool setKey(const unsigned char* key) { return false;  }
+	virtual bool setKey(const unsigned char* key) { return false; }
 
 	/**
 	 * NOTE: This is used for RSA.
@@ -35,35 +35,33 @@ public:
 	 * @return                - true if setting key succeeded; false otherwise.
 	 */
 	virtual bool setKey(const unsigned char* publicKeyFile, const unsigned char* privateKeyFile)
-	{
-		return false;
-	};
+	{ return false; }
 
-	/**
-	 * Encrypt the file at plaintextFileIn and output at ciphertextFileOut.
-	 * @param  plaintextFileIn   - the file to encrypt.
-	 * @param  ciphertextFileOut - the encrypted output file.
-	 * @return 					 - void
-	 */
 	virtual unsigned char* encrypt(const unsigned char* plaintext)
 	{ return NULL; }
 
-	virtual void encrypt(const unsigned char* plaintextFileIn,
-	                     const unsigned char* ciphertextFileOut)
-	{ return; }
-
 	/**
-	 * Decrypt the file at ciphertextFileIn and output at plaintextFileOut.
-	 * @param  ciphertextFileIn - the file to decrypt.
-	 * @param  plaintextFileOut - the decrypted output file.
-	 * @return                  - void
-	 */
+	* Encrypt the file at plaintextFileIn and output at ciphertextFileOut.
+	* @param  plaintextFileIn   - the file to encrypt.
+	* @param  ciphertextFileOut - the encrypted output file.
+	* @return 					 - true if successful, false otherwise.
+	*/
+	virtual bool encrypt(const unsigned char* plaintextFileIn,
+	                     const unsigned char* ciphertextFileOut)
+	{ return false; }
+
 	virtual unsigned char* decrypt(const unsigned char* ciphertext)
 	{ return NULL; }
 
-	virtual void decrypt(const unsigned char* ciphertextFileIn,
+	/**
+	* Decrypt the file at ciphertextFileIn and output at plaintextFileOut.
+	* @param  ciphertextFileIn - the file to decrypt.
+	* @param  plaintextFileOut - the decrypted output file.
+	* @return                  - true if successful, false otherwise.
+	*/
+	virtual bool decrypt(const unsigned char* ciphertextFileIn,
 	                     const unsigned char* plaintextFileOut)
-	{ return; }
+	{ return false; }
 
 	/**
 	 * The default destructor.
