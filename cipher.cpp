@@ -21,14 +21,14 @@ int main(int argc, char** argv)
 	CipherType cType = UnknownType;
 	CipherAction action = UnknownAction;
 
-	if (argc == 7)
+	if (argc == 7 || argc == 8)
 	{
 		cType = getCipherType(string(argv[1]));
 		action = getCipherAction(string(argv[4]));
 	}
 	else
 	{
-		cout << "Usage: DES" << argv[0] << " <CIPHERTYPE> <DESKEY> <MODE> <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
+		cout << "Usage: DES" << argv[0] << " <CIPHERTYPE> <DESKEY> <MODE> <ENC/DEC> (<IV> empty string if ECB) <INPUTFILE> <OUTPUT FILE>\n";
 		cout << "Usage: RSA" << argv[0] << " <CIPHERTYPE> <RSAPUBKEYFILE> <RSAPRIVKEYFILE> <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
 		cleanExit(NULL, -1);
 	}
@@ -63,13 +63,12 @@ int main(int argc, char** argv)
 
 	if (cType == DESType)
 	{
-		/* Set the encryption key
-		 * A valid key comprises 16 hexadecimal characters. Below is one example.
-		 * Your program should take input from command line.
+		/* Set the encryption key and IV (if needed).
+		 * A valid key and IV comprises 16 hexadecimal characters. 
 		 */
-		if (!cipher->setKey((unsigned char*) argv[2]))
+		if (!cipher->setKey((unsigned char*) argv[2], (unsigned char*) argv[5]))
 		{
-			cout << "Error: invalid key\n";
+			cout << "Error: could not set key / iv\n";
 			cleanExit(cipher, -1);
 		}
 
@@ -77,11 +76,11 @@ int main(int argc, char** argv)
 		{
 		case ENC:
 			// Perform encryption.
-			cipher->encrypt((unsigned char*) argv[5], (unsigned char*) argv[6]);
+			cipher->encrypt((unsigned char*) argv[6], (unsigned char*) argv[7]);
 			break;
 		case DEC:
 			// Perform decryption.
-			cipher->decrypt((unsigned char*) argv[5], (unsigned char*) argv[6]);
+			cipher->decrypt((unsigned char*) argv[6], (unsigned char*) argv[7]);
 			break;
 		case UnknownAction:
 			cout << "Unknown action\n";

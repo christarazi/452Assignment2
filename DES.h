@@ -38,11 +38,12 @@ public:
 	DES(DESMode mode);
 
 	/**
-	 * Sets the key to use
+	 * Sets the key and IV to use.
 	 * @param key 	- the key to use.
+	 * @param iv 	- the IV for encrypt / decrypt modes.
 	 * @return 		- true if the key is valid and false otherwise.
 	 */
-	virtual bool setKey(const unsigned char* key);
+	virtual bool setKey(const unsigned char* key, const unsigned char* iv);
 
 	/**
 	 * Encrypt the file at plaintextFileIn and output at ciphertextFileOut.

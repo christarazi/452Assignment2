@@ -18,7 +18,7 @@ DES::DES(DESMode mode)
  * @param key 	- the key to use.
  * @return 		- true if the key is valid and false otherwise.
  */
-bool DES::setKey(const unsigned char* keyArray)
+bool DES::setKey(const unsigned char* keyArray, const unsigned char* iv)
 {
 	/* The key error code */
 	int keyErrorCode = -1;
@@ -32,14 +32,32 @@ bool DES::setKey(const unsigned char* keyArray)
 	/* The DES key index */
 	int desKeyIndex = 0;
 
+	// Check if an IV is provided and if it's empty, only if the mode is not ECB.
+	if (this->desMode != ECB && strlen((char*) iv) == 0)
+	{
+		fprintf(stderr, "\niv is empty %d\n", keyErrorCode);
+		return false;
+	}
+
 	/* Go through the entire key character by character */
-	while (desKeyIndex != 8)
+	while (desKeyIndex != MAX_DES_BYTES)
 	{
 		/* Convert the key if the character is valid */
 		if ((this->des_key[desKeyIndex] = twoCharToHexByte(keyArray + keyIndex)) == 'z')
 		{
 			fprintf(stderr, "\nkey is invalid %d\n", keyErrorCode);
 			return false;
+		}
+
+		// Only check IV if the mode is not ECB.
+		if (this->desMode != ECB)
+		{
+			/* Convert the IV if the character is valid */
+			if ((this->initVec[desKeyIndex] = twoCharToHexByte(iv + keyIndex)) == 'z')
+			{
+				fprintf(stderr, "\niv is invalid %d\n", keyErrorCode);
+				return false;
+			}
 		}
 
 		/* Go to the second pair of characters */
@@ -67,13 +85,13 @@ bool DES::setKey(const unsigned char* keyArray)
 		return false;
 	}
 
-	// Generate the initialization vector.
-	if ((keyErrorCode = RAND_bytes(this->initVec.data(), MAX_DES_BYTES)) == 0)
-	{
-		ERR_get_error();
-		fprintf(stderr, "\ninit vec error %d\n", keyErrorCode);
-		return false;
-	}
+	// // Generate the initialization vector.
+	// if ((keyErrorCode = RAND_bytes(this->initVec.data(), MAX_DES_BYTES)) == 0)
+	// {
+	// 	ERR_get_error();
+	// 	fprintf(stderr, "\ninit vec error %d\n", keyErrorCode);
+	// 	return false;
+	// }
 
 	/* All is well */
 	return true;
@@ -268,7 +286,7 @@ bool DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 		 * Write out the initialization vector to the encrypted file
 		 * so the decryption algorithm may know it.
 		 */
-		fOut.write((char*) this->initVec.data(), MAX_DES_BYTES);
+		//fOut.write((char*) this->initVec.data(), MAX_DES_BYTES);
 
 		// stat() call initializes fileStat with the file attributes.
 		if (stat((char*) plaintextFileIn, &this->fileStat) == -1)
@@ -398,7 +416,7 @@ bool DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 		 * Read in the initialization vector from the encrypted file
 		 * so the decryption algorithm can decrypt correctly.
 		 */
-		fIn.read((char*) this->initVec.data(), MAX_DES_BYTES);
+		//fIn.read((char*) this->initVec.data(), MAX_DES_BYTES);
 
 		// Read the pad byte from the file.
 		fIn.read((char*) numPadBytes, 1);
