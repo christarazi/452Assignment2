@@ -85,6 +85,27 @@ protected:
 	vector<unsigned char> performCBC(vector<unsigned char> readBlock, vector<unsigned char> &cipherBlock,
 	                                 bool action, bool &firstRun);
 
+    /**
+     * Function to perform DES in CFB mode.
+     * @param  textVec   	- The input buffer 
+     * @param  returnVec    - pass-by-reference vector holding the previous block for chaining.
+     * @param  action  		- the action to perform (ENC / DEC).
+     * @param  firstRun  	- indicates where this is first run through CBC or not.
+     * @param  previousByte - The cipher byte resulting from CFB. 
+     * @return 				- return new vector based on action.
+     */
+    vector<unsigned char> performCFB(vector<unsigned char> textBlock, vector<unsigned char> &cipherBlock,
+                                        bool action, bool &firstRun, unsigned char &previousChar);
+    
+    
+    /**
+     * Function to perform left circular shift.
+     * @param  block     	- the 64 bit block to be shifted.
+     * @param  size         - the amount to be shifted.
+     * @return 				- return new vector based on action.
+     */    
+    vector<unsigned char> shiftOneByte(vector<unsigned char> block, unsigned char c);
+
 	/**
 	 * Function to pad a DES block if necessary.
 	 * @param  readBuffer - the block we want to verify padding for.
@@ -139,6 +160,10 @@ protected:
 
 	/* The initialization vector */
 	vector<unsigned char> initVec;
+    
+    /* The Shift vector */
+    vector<unsigned char> shiftVec;
+    
 };
 
 

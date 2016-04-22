@@ -70,13 +70,13 @@ bool DES::setKey(const unsigned char* keyArray, const unsigned char* iv)
 	// Set the key to have odd parity. All DES keys must have odd parity.
 	DES_set_odd_parity(&this->des_key);
 
-	//fprintf(stdout, "DES KEY: ");
+	fprintf(stdout, "DES KEY: ");
 
 	/* Print the key */
-	// for (keyIndex = 0; keyIndex < 8; ++keyIndex)
-	// 	fprintf(stdout, "%02x", this->des_key[keyIndex]);
+	for (keyIndex = 0; keyIndex < 8; ++keyIndex)
+        fprintf(stdout, "%02x", this->des_key[keyIndex]);
 
-	//fprintf(stdout, "\n");
+	fprintf(stdout, "\n");
 
 	/* Set the encryption key */
 	if ((keyErrorCode = des_set_key_checked(&this->des_key, this->key)) != 0)
@@ -234,6 +234,59 @@ vector<unsigned char> DES::performCBC(vector<unsigned char> readBlock, vector<un
 }
 
 /**
+ * Function to perform left circular shift.
+ * @param  block     	- the 8 byte block to be shifted.
+ * @param  c            - the previous byte to insert.
+ * @return 				- return shifted vector.
+ */    
+vector<unsigned char> DES::shiftOneByte(vector<unsigned char> block, unsigned char c)
+{
+    //Left Circular Shift by 1 byte.
+    rotate(block.begin(), block.begin()+1, block.end());
+    
+    block[block.size()-1] = c;
+    return block;
+    
+}
+
+/**
+ * Function to perform DES in CFB mode.
+ * @param  textVec   	- The input buffer 
+ * @param  returnVec    - pass-by-reference vector holding the previous block for chaining.
+ * @param  action  		- the action to perform (ENC / DEC).
+ * @param  firstRun  	- indicates where this is first run through CBC or not.
+ * @param  previousByte - The cipher byte resulting from CFB. 
+ * @return 				- return new vector based on action.
+ */
+vector<unsigned char> DES::performCFB(vector<unsigned char> textVec, vector<unsigned char> &returnVec,
+                                         bool action, bool &firstRun, unsigned char &previousByte)
+{
+    //Read 1 byte at a time because we are similating a stream cipher.
+    for (int i = 0; i < textVec.size();  ++i)
+    {
+        //Encrypt Shift Vector
+        if(firstRun)
+        {
+            this->shiftVec = this->initVec;
+            firstRun = false;
+        }
+        else
+            this->shiftVec = shiftOneByte(this->shiftVec, previousByte);
+        this->shiftVec = performDES(this->shiftVec, 1);
+        
+        //X-OR First byte in Shift Vector with the Input Byte
+        returnVec[i] = (unsigned char)(textVec[i] ^ shiftVec[0]);
+        
+        //Set the cipher byte for the next iteration.
+        if (action)
+            previousByte = returnVec[i];
+        else
+            previousByte = textVec[i];
+    }
+    return returnVec;
+}
+
+/**
  * Encrypt the file at plaintextFileIn and output at ciphertextFileOut.
  * @param  plaintextFileIn   - the file to encrypt.
  * @param  ciphertextFileOut - the encrypted output file.
@@ -278,6 +331,7 @@ bool DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 	int totalBytesRead = 0;
 	int totalBytesWritten = 0;
 	unsigned char numPadBytes[1];
+    unsigned char previousByte;  //The previous Cipher byte used in DES, CFB Mode.  
 
 	// Make sure both file streams were able to open the files.
 	if (fIn.is_open() && fOut.is_open())
@@ -343,7 +397,9 @@ bool DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 				encryptedBuffer = performDES(readBuffer, 1);
 			else if (cbc)
 				encryptedBuffer = performCBC(readBuffer, cipherBuffer, 1, isFirstRun);
-			else
+			else if (cfb)
+                encryptedBuffer = performCFB(readBuffer, cipherBuffer, 1, isFirstRun, previousByte);
+            else
 				return false;
 
 			// Fancy C++11 function to copy encryptedBuffer to output file.
@@ -408,6 +464,7 @@ bool DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 	int totalBytesWritten = 0;
 	int padBytes;
 	unsigned char numPadBytes[1];
+    unsigned char previousByte;  //The previous Cipher byte used in DES, CFB Mode.  
 
 	// Make sure both file streams were able to open the files.
 	if (fIn.is_open() && fOut.is_open())
@@ -441,7 +498,9 @@ bool DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 				decryptedBuffer = performDES(readBuffer, 0);
 			else if (cbc)
 				decryptedBuffer = performCBC(readBuffer, cipherBuffer, 0, isFirstRun);
-			else
+			else if (cfb)
+                decryptedBuffer = performCFB(readBuffer, cipherBuffer, 0, isFirstRun, previousByte);
+            else
 				return false;
 
 			/**
