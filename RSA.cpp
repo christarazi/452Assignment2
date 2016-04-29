@@ -35,8 +35,8 @@ bool RSA_452::setKey(const unsigned char* publicKeyFile, const unsigned char* pr
 	}
 
 	// Set the public and private key.
-	pubKey = PEM_read_RSA_PUBKEY(fPublic, NULL, NULL, NULL);
-	privKey = PEM_read_RSAPrivateKey(fPrivate, NULL, NULL, NULL);
+	this->pubKey = PEM_read_RSA_PUBKEY(fPublic, NULL, NULL, NULL);
+	this->privKey = PEM_read_RSAPrivateKey(fPrivate, NULL, NULL, NULL);
 
 	fclose(fPublic);
 	fclose(fPrivate);
@@ -53,8 +53,6 @@ bool RSA_452::setKey(const unsigned char* publicKeyFile, const unsigned char* pr
 bool RSA_452::encrypt(const unsigned char* plaintextFileIn,
                       const unsigned char* ciphertextFileOut)
 {
-	cout << "Starting encryption...\n\n";
-
 	// Open files in binary mode.
 	fstream fIn((char*) plaintextFileIn, ios::in | ios::binary);
 	fstream fOut((char*) ciphertextFileOut, ios::out | ios::binary);
@@ -95,9 +93,6 @@ bool RSA_452::encrypt(const unsigned char* plaintextFileIn,
 			if (bytesRead == 0)
 				break;
 
-			//cout << "Read " << bytesRead << " bytes" << endl;
-			// cout << "Plaintext:\n" << (char*) readBuffer.data() << endl;
-
 			// Perform encryption on the block we just read and store it in writeBuffer.
 			if ((encryptedBytes = RSA_public_encrypt(bytesRead, readBuffer.data(),
 			                      writeBuffer.data(), pubKey, RSA_PKCS1_OAEP_PADDING)) < 0)
@@ -110,16 +105,9 @@ bool RSA_452::encrypt(const unsigned char* plaintextFileIn,
 			totalBytesWritten += encryptedBytes;
 			totalBytesRead += bytesRead;
 
-			//cout << "Encrypted " << encryptedBytes << " bytes" << endl;
-
 			// Fancy C++11 function to copy writeBuffer to output file.
 			copy(begin(writeBuffer), end(writeBuffer),
 			     ostream_iterator<unsigned char>(fOut, ""));
-
-			// cout << "Ciphertext:\n";
-			// for (auto && i : writeBuffer)
-			// 	printf("%02x ", i);
-			// cout << "\n\n";
 		}
 	}
 	else
@@ -129,10 +117,6 @@ bool RSA_452::encrypt(const unsigned char* plaintextFileIn,
 		fOut.close();
 		return false;
 	}
-
-	cout << "Total bytes read: " << totalBytesRead << "\n";
-	cout << "Total bytes written: " << totalBytesWritten << "\n";
-	cout << "Encryption completed...\n\n";
 
 	fIn.close();
 	fOut.close();
@@ -154,7 +138,7 @@ bool RSA_452::decrypt(const unsigned char* ciphertextFileIn,
 	fstream fOut((char*) plaintextFileOut, ios::out | ios::binary);
 
 	/**
-	 * readBuffer must be of size 215 because that's the maximum number of
+	 * readBuffer must be of size 256 because that's the maximum number of
 	 * bytes RSA takes in for encryption (because of padding).
 	 * writeBuffer is of size 256 because that's the number of bytes RSA outputs.
 	 */
@@ -189,12 +173,6 @@ bool RSA_452::decrypt(const unsigned char* ciphertextFileIn,
 			if (bytesRead == 0)
 				break;
 
-			//cout << "Read " << bytesRead << " bytes" << endl;
-			// cout << "Ciphertext:\n";
-			// for (auto && i : readBuffer)
-			// 	printf("%02x ", i);
-			// cout << "\n";
-
 			// Perform encryption on the block we just read and store it in writeBuffer.
 			if ((decryptedBytes = RSA_private_decrypt(bytesRead, readBuffer.data(),
 			                      writeBuffer.data(), privKey, RSA_PKCS1_OAEP_PADDING)) < 0)
@@ -207,13 +185,9 @@ bool RSA_452::decrypt(const unsigned char* ciphertextFileIn,
 			totalBytesWritten += decryptedBytes;
 			totalBytesRead += bytesRead;
 
-			//cout << "Decrypted " << decryptedBytes << " bytes" << endl;
-
 			// Fancy C++11 function to copy writeBuffer to output file.
 			copy(begin(writeBuffer), begin(writeBuffer) + decryptedBytes,
 			     ostream_iterator<unsigned char>(fOut, ""));
-
-			// cout << "Plaintext:\n" << (char*) writeBuffer.data() << "\n";
 		}
 	}
 	else
@@ -223,10 +197,6 @@ bool RSA_452::decrypt(const unsigned char* ciphertextFileIn,
 		fOut.close();
 		return false;
 	}
-
-	cout << "Total bytes read: " << totalBytesRead << "\n";
-	cout << "Total bytes written: " << totalBytesWritten << "\n";
-	cout << "Decryption completed...\n\n";
 
 	fIn.close();
 	fOut.close();
@@ -239,7 +209,6 @@ bool RSA_452::decrypt(const unsigned char* ciphertextFileIn,
  */
 RSA_452::~RSA_452()
 {
-	RSA_free(pubKey);
-	RSA_free(privKey);
-	cout << "[DEBUG] destructor called\n";
+	RSA_free(this->pubKey);
+	RSA_free(this->privKey);
 }

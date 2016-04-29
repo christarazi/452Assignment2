@@ -70,28 +70,12 @@ bool DES::setKey(const unsigned char* keyArray, const unsigned char* iv)
 	// Set the key to have odd parity. All DES keys must have odd parity.
 	DES_set_odd_parity(&this->des_key);
 
-	fprintf(stdout, "DES KEY: ");
-
-	/* Print the key */
-	for (keyIndex = 0; keyIndex < 8; ++keyIndex)
-        fprintf(stdout, "%02x", this->des_key[keyIndex]);
-
-	fprintf(stdout, "\n");
-
 	/* Set the encryption key */
 	if ((keyErrorCode = des_set_key_checked(&this->des_key, this->key)) != 0)
 	{
 		fprintf(stderr, "\nkey error %d\n", keyErrorCode);
 		return false;
 	}
-
-	// // Generate the initialization vector.
-	// if ((keyErrorCode = RAND_bytes(this->initVec.data(), MAX_DES_BYTES)) == 0)
-	// {
-	// 	ERR_get_error();
-	// 	fprintf(stderr, "\ninit vec error %d\n", keyErrorCode);
-	// 	return false;
-	// }
 
 	/* All is well */
 	return true;
@@ -246,7 +230,6 @@ vector<unsigned char> DES::shiftOneByte(vector<unsigned char> block, unsigned ch
     
     block[block.size()-1] = c;
     return block;
-    
 }
 
 /**
@@ -336,12 +319,6 @@ bool DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 	// Make sure both file streams were able to open the files.
 	if (fIn.is_open() && fOut.is_open())
 	{
-		/**
-		 * Write out the initialization vector to the encrypted file
-		 * so the decryption algorithm may know it.
-		 */
-		//fOut.write((char*) this->initVec.data(), MAX_DES_BYTES);
-
 		// stat() call initializes fileStat with the file attributes.
 		if (stat((char*) plaintextFileIn, &this->fileStat) == -1)
 		{
@@ -357,8 +334,6 @@ bool DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 			numPadBytes[0] = 0;
 		else
 			numPadBytes[0] = MAX_DES_BYTES - (fileSize % MAX_DES_BYTES);
-
-		//cout << "Number of pad bytes needed: " << (int) numPadBytes[0] << endl;
 
 		// Write number of pad bytes at the beginning of the file.
 		fOut.write((char*) numPadBytes, 1);
@@ -384,10 +359,7 @@ bool DES::encrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 			 * which technically advances the pointer.
 			 */
 			if (fIn.peek() == EOF)
-			{
-				//cout << "padding with " << (int) numPadBytes[0] << " bytes\n";
 				readBuffer = padBlock(readBuffer, (int) numPadBytes[0]);
-			}
 
 			/**
 			 * Check which mode we are using.
@@ -469,16 +441,8 @@ bool DES::decrypt(const unsigned char* plaintextFileIn, const unsigned char* cip
 	// Make sure both file streams were able to open the files.
 	if (fIn.is_open() && fOut.is_open())
 	{
-		/**
-		 * Read in the initialization vector from the encrypted file
-		 * so the decryption algorithm can decrypt correctly.
-		 */
-		//fIn.read((char*) this->initVec.data(), MAX_DES_BYTES);
-
 		// Read the pad byte from the file.
 		fIn.read((char*) numPadBytes, 1);
-
-		//cout << "Found pad byte: " << (int) numPadBytes[0] << endl;
 
 		// Loop while there is still data to be read from the file.
 		while (fIn.good())

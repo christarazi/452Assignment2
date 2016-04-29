@@ -28,8 +28,8 @@ int main(int argc, char** argv)
 	}
 	else
 	{
-		cout << "Usage: DES" << argv[0] << " <CIPHERTYPE> <DESKEY> <MODE> <ENC/DEC> (<IV> empty string if ECB) <INPUTFILE> <OUTPUT FILE>\n";
-		cout << "Usage: RSA" << argv[0] << " <CIPHERTYPE> <RSAPUBKEYFILE> <RSAPRIVKEYFILE> <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
+		cout << "Usage: DES " << argv[0] << " <CIPHERTYPE> <DESKEY> <MODE> <ENC/DEC> (<IV> empty string if ECB) <INPUTFILE> <OUTPUT FILE>\n";
+		cout << "Usage: RSA " << argv[0] << " <CIPHERTYPE> <RSAPUBKEYFILE> <RSAPRIVKEYFILE> <ENC/DEC> <INPUTFILE> <OUTPUT FILE>\n";
 		cleanExit(NULL, -1);
 	}
 
